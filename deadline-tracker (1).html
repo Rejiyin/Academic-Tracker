@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Deadline Tracker — Eji</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f10;
+    --surface: #1a1a1c;
+    --surface2: #242426;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0efe9;
+    --text2: #9d9c97;
+    --text3: #5a5956;
+    --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --sans: 'DM Sans', system-ui, sans-serif;
+    --radius: 10px;
+    --radius-lg: 14px;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; padding: 0; }
+
+  .app { max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+  .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 2rem; gap: 1rem; }
+  .header-left h1 { font-size: 22px; font-weight: 500; letter-spacing: -0.02em; }
+  .header-left p { font-size: 13px; color: var(--text2); margin-top: 3px; font-family: var(--mono); }
+
+  .add-btn {
+    background: var(--text); color: var(--bg);
+    border: none; border-radius: var(--radius); padding: 9px 18px;
+    font-size: 13px; font-weight: 500; font-family: var(--sans);
+    cursor: pointer; display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+    transition: opacity 0.15s;
+  }
+  .add-btn:hover { opacity: 0.82; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+  .stat { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; border: 0.5px solid var(--border); }
+  .stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .stat-val { font-size: 26px; font-weight: 500; font-family: var(--mono); color: var(--text); }
+  .stat-val.red { color: #e24b4a; }
+  .stat-val.amber { color: #ef9f27; }
+  .stat-val.teal { color: #1d9e75; }
+
+  .filters { display: flex; gap: 7px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .pill {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: 99px; padding: 5px 13px; font-size: 12px;
+    color: var(--text2); cursor: pointer; font-family: var(--sans);
+    transition: all 0.15s;
+  }
+  .pill:hover { border-color: var(--border2); color: var(--text); }
+  .pill.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+  .deadline-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .card {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg); padding: 14px 16px;
+    display: grid; grid-template-columns: 4px 1fr auto;
+    gap: 14px; align-items: center;
+    transition: border-color 0.15s, opacity 0.2s;
+  }
+  .card:hover { border-color: var(--border2); }
+  .card.done { opacity: 0.4; }
+
+  .urgency-stripe { width: 4px; height: 50px; border-radius: 2px; }
+  .urgency-stripe.overdue { background: #e24b4a; }
+  .urgency-stripe.soon { background: #ef9f27; }
+  .urgency-stripe.week { background: #97c459; }
+  .urgency-stripe.safe { background: #1d9e75; }
+  .urgency-stripe.done-stripe { background: var(--surface2); }
+
+  .card-body { min-width: 0; }
+  .card-top { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; flex-wrap: wrap; }
+
+  .subject-tag { font-family: var(--mono); font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 5px; }
+  .tag-cs  { background: #0c2d4a; color: #85b7eb; }
+  .tag-csac { background: #1e1b40; color: #afa9ec; }
+  .tag-csam { background: #162a0b; color: #97c459; }
+  .tag-pathfit { background: #3b1208; color: #f0997b; }
+  .tag-other { background: var(--surface2); color: var(--text2); }
+
+  .type-badge { font-size: 11px; color: var(--text3); display: flex; align-items: center; gap: 3px; }
+
+  .task-name { font-size: 14px; font-weight: 500; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .task-name.done { text-decoration: line-through; color: var(--text3); }
+
+  .card-meta { font-size: 12px; color: var(--text3); margin-top: 3px; display: flex; align-items: center; gap: 6px; }
+
+  .card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+  .days-lbl { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+  .days-lbl.overdue { color: #e24b4a; }
+  .days-lbl.soon { color: #ef9f27; }
+  .days-lbl.week { color: #97c459; }
+  .days-lbl.safe { color: #1d9e75; }
+  .days-lbl.done { color: var(--text3); }
+  .due-txt { font-size: 11px; color: var(--text3); text-align: right; }
+
+  .actions { display: flex; gap: 6px; }
+  .ibtn {
+    background: none; border: 0.5px solid var(--border); border-radius: 8px;
+    width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text2); font-size: 15px; transition: all 0.15s;
+  }
+  .ibtn:hover.done-btn { color: #1d9e75; border-color: #1d9e75; background: rgba(29,158,117,0.08); }
+  .ibtn:hover.del-btn  { color: #e24b4a; border-color: #e24b4a; background: rgba(226,75,74,0.08); }
+
+  .empty { text-align: center; padding: 4rem 1rem; color: var(--text3); }
+  .empty i { font-size: 36px; display: block; margin-bottom: 12px; }
+  .empty p { font-size: 14px; }
+
+  /* Modal */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    display: none; align-items: center; justify-content: center; z-index: 200;
+    padding: 1rem;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 0.5px solid var(--border2);
+    border-radius: var(--radius-lg); padding: 24px; width: 100%; max-width: 480px;
+  }
+  .modal h3 { font-size: 16px; font-weight: 500; margin-bottom: 20px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; color: var(--text2); }
+  .field input, .field select {
+    background: var(--surface2); border: 0.5px solid var(--border2); border-radius: var(--radius);
+    color: var(--text); font-size: 13px; font-family: var(--sans); padding: 9px 12px; outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field select:focus { border-color: rgba(255,255,255,0.3); }
+  .field select option { background: var(--surface2); }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+  .btn-cancel {
+    background: none; border: 0.5px solid var(--border2); border-radius: var(--radius);
+    padding: 8px 18px; font-size: 13px; font-family: var(--sans); color: var(--text2); cursor: pointer;
+  }
+  .btn-save {
+    background: var(--text); color: var(--bg); border: none; border-radius: var(--radius);
+    padding: 8px 22px; font-size: 13px; font-weight: 500; font-family: var(--sans); cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-save:hover { opacity: 0.85; }
+
+  @media (max-width: 540px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-grid .full { grid-column: 1; }
+    .stat-val { font-size: 22px; }
+  }
+  @media (max-width: 380px) {
+    .card { grid-template-columns: 4px 1fr; }
+    .card-right { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <h1>Deadline tracker</h1>
+      <p id="date-line"></p>
+    </div>
+    <button class="add-btn" onclick="openModal()"><i class="ti ti-plus"></i> Add deadline</button>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat"><div class="stat-label">Overdue</div><div class="stat-val red" id="s-overdue">0</div></div>
+    <div class="stat"><div class="stat-label">Due soon</div><div class="stat-val amber" id="s-soon">0</div></div>
+    <div class="stat"><div class="stat-label">Upcoming</div><div class="stat-val teal" id="s-upcoming">0</div></div>
+    <div class="stat"><div class="stat-label">Completed</div><div class="stat-val" id="s-done">0</div></div>
+  </div>
+
+  <div class="filters" id="filters"></div>
+  <div class="deadline-list" id="list"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3>New deadline</h3>
+    <div class="form-grid">
+      <div class="field full">
+        <label>Task name</label>
+        <input id="f-task" type="text" placeholder="e.g. K-Means Jupyter Notebook" />
+      </div>
+      <div class="field">
+        <label>Subject code</label>
+        <input id="f-subject" type="text" placeholder="e.g. CSAC 224" />
+      </div>
+      <div class="field">
+        <label>Type</label>
+        <select id="f-type">
+          <option value="individual">Individual</option>
+          <option value="group">Group</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Deliverable</label>
+        <select id="f-deliverable">
+          <option>Jupyter Notebook</option>
+          <option>Python Script</option>
+          <option>Word Document</option>
+          <option>PDF Report</option>
+          <option>ZIP Submission</option>
+          <option>Presentation</option>
+          <option>Video</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field full">
+        <label>Due date &amp; time</label>
+        <input id="f-due" type="datetime-local" />
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveDeadline()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ICONS = { 'Jupyter Notebook':'ti-file-code','Python Script':'ti-brand-python','Word Document':'ti-file-text','PDF Report':'ti-file-type-pdf','ZIP Submission':'ti-file-zip','Presentation':'ti-presentation','Video':'ti-video','Other':'ti-file' };
+let data = [], activeFilter = 'all';
+
+function load() { try { data = JSON.parse(localStorage.getItem('eji-deadlines') || '[]'); } catch(e) { data = []; } }
+function save() { localStorage.setItem('eji-deadlines', JSON.stringify(data)); }
+
+function subjectClass(code) {
+  const u = (code||'').toUpperCase();
+  if (u.startsWith('CS ') || u === 'CS') return 'tag-cs';
+  if (u.startsWith('CSAC')) return 'tag-csac';
+  if (u.startsWith('CSAM')) return 'tag-csam';
+  if (u.startsWith('PATHFIT') || u.startsWith('PE')) return 'tag-pathfit';
+  return 'tag-other';
+}
+
+function urgency(d) {
+  if (d.done) return 'done';
+  const diff = new Date(d.due) - Date.now();
+  if (diff < 0) return 'overdue';
+  if (diff <= 3*86400000) return 'soon';
+  if (diff <= 7*86400000) return 'week';
+  return 'safe';
+}
+
+function daysLabel(d, u) {
+  if (u === 'done') return 'Done ✓';
+  const diff = new Date(d.due) - Date.now();
+  if (u === 'overdue') { const h = Math.abs(Math.ceil(diff/3600000)); return h<24 ? h+'h overdue' : Math.ceil(Math.abs(diff)/86400000)+'d overdue'; }
+  const h = Math.floor(diff/3600000);
+  return h < 24 ? h+'h left' : Math.ceil(diff/86400000)+'d left';
+}
+
+function fmtDate(s) { return new Date(s).toLocaleDateString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
+
+function getSubjects() { return [...new Set(data.map(d=>d.subject).filter(Boolean))]; }
+
+function filtered() {
+  return data.filter(d => {
+    if (activeFilter==='all') return true;
+    if (activeFilter==='done') return d.done;
+    if (activeFilter==='overdue') return urgency(d)==='overdue';
+    if (activeFilter==='due soon') return urgency(d)==='soon';
+    if (activeFilter==='upcoming') return !d.done && urgency(d)!=='overdue' && urgency(d)!=='soon';
+    return (d.subject||'').toUpperCase()===activeFilter.toUpperCase();
+  }).sort((a,b)=>{ if(a.done!==b.done) return a.done?1:-1; return new Date(a.due)-new Date(b.due); });
+}
+
+function render() {
+  document.getElementById('s-overdue').textContent = data.filter(d=>urgency(d)==='overdue').length;
+  document.getElementById('s-soon').textContent = data.filter(d=>urgency(d)==='soon').length;
+  document.getElementById('s-upcoming').textContent = data.filter(d=>!d.done&&urgency(d)!=='overdue'&&urgency(d)!=='soon').length;
+  document.getElementById('s-done').textContent = data.filter(d=>d.done).length;
+
+  const subjects = getSubjects();
+  const pills = ['all','overdue','due soon','upcoming','done',...subjects];
+  document.getElementById('filters').innerHTML = pills.map(p=>`<button class="pill${activeFilter===p?' active':''}" onclick="setFilter('${p}')">${p}</button>`).join('');
+
+  const items = filtered();
+  const list = document.getElementById('list');
+  if (!items.length) { list.innerHTML=`<div class="empty"><i class="ti ti-calendar-check"></i><p>Nothing here. Either you're on top of things, or you forgot to add them.</p></div>`; return; }
+  list.innerHTML = items.map(d=>{
+    const u = urgency(d), ic = ICONS[d.deliverable]||'ti-file';
+    return `<div class="card${d.done?' done':''}">
+      <div class="urgency-stripe ${u==='done'?'done-stripe':u}"></div>
+      <div class="card-body">
+        <div class="card-top">
+          <span class="subject-tag ${subjectClass(d.subject)}">${d.subject||'—'}</span>
+          <span class="type-badge"><i class="ti ${d.type==='group'?'ti-users':'ti-user'}" style="font-size:12px;"></i> ${d.type}</span>
+        </div>
+        <div class="task-name${d.done?' done':''}">${d.task}</div>
+        <div class="card-meta"><i class="ti ${ic}" style="font-size:12px;"></i> ${d.deliverable}</div>
+      </div>
+      <div class="card-right">
+        <div>
+          <div class="days-lbl ${u==='done'?'done':u}">${daysLabel(d,u)}</div>
+          <div class="due-txt">${fmtDate(d.due)}</div>
+        </div>
+        <div class="actions">
+          <button class="ibtn done-btn" onclick="toggle('${d.id}')" title="${d.done?'Undo':'Done'}"><i class="ti ${d.done?'ti-rotate-clockwise':'ti-check'}"></i></button>
+          <button class="ibtn del-btn" onclick="del('${d.id}')" title="Delete"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(f) { activeFilter=f; render(); }
+
+function openModal() {
+  const n=new Date(); n.setHours(23,59,0,0);
+  document.getElementById('f-due').value = n.toISOString().slice(0,16);
+  document.getElementById('f-task').value='';
+  document.getElementById('f-subject').value='';
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('f-task').focus(),50);
+}
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+
+function saveDeadline() {
+  const task=document.getElementById('f-task').value.trim();
+  const due=document.getElementById('f-due').value;
+  if (!task||!due) { alert('Fill in task name and due date.'); return; }
+  data.push({ id:Date.now().toString(), task, subject:document.getElementById('f-subject').value.trim().toUpperCase(), type:document.getElementById('f-type').value, deliverable:document.getElementById('f-deliverable').value, due, done:false });
+  save(); closeModal(); render();
+}
+function toggle(id) { const d=data.find(x=>x.id===id); if(d){d.done=!d.done; save(); render();} }
+function del(id) { data=data.filter(x=>x.id!==id); save(); render(); }
+
+document.getElementById('overlay').addEventListener('click',e=>{ if(e.target===document.getElementById('overlay')) closeModal(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+document.getElementById('date-line').textContent = new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+load(); render();
+setInterval(render, 60000);
+</script>
+</body>
+</html>
